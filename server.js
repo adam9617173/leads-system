@@ -30,35 +30,35 @@ app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
-// 搜尋 API
+// 搜尋 API - 每次都搜尋，用 URL 比對是否重複
 app.post('/api/leads/search', async (req, res) => {
-  const { keyword } = req.body;
+  const { keyword, force } = req.body;
   
   if (!keyword) {
     res.json({ error: '請輸入關鍵字' });
     return;
   }
   
-  // 先檢查是否已經搜尋過這個關鍵字
   const existingLeads = getLeads();
-  const existingForKeyword = existingLeads.filter(l => l.keyword === keyword);
   
-  if (existingForKeyword.length > 0) {
-    // 已有資料，回傳現有的
+  // 如果不是強制搜尋，且有關鍵字舊資料，就回傳舊的
+  if (!force && existingLeads.some(l => l.keyword === keyword)) {
+    const existingForKeyword = existingLeads.filter(l => l.keyword === keyword);
     res.json({ 
       success: true, 
       leads: existingForKeyword, 
       count: existingForKeyword.length,
-      message: '已找到 ' + existingForKeyword.length + ' 筆現有資料（關鍵字：' + keyword + '）'
+      message: '已找到 ' + existingForKeyword.length + ' 筆現有資料'
     });
     return;
   }
   
-  // 沒有資料，進行搜尋
+  // 每次都搜尋，用 URL 比對是否重複
   try {
     const response = await axios.post('https://api.tavily.com/search', {
       query: keyword + ' 線上課程 講師 LINE',
-      api_key: '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'
+      api_key: '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',
+      max_results: 20
     }, { timeout: 15000 });
     
     const results = response.data.results || [];
@@ -75,12 +75,14 @@ app.post('/api/leads/search', async (req, res) => {
       createdAt: new Date().toISOString()
     }));
     
-    // 儲存
+    // 儲存 - 用 URL 比對，過濾重複的
     const allLeads = getLeads();
-    const updatedLeads = [...leads, ...allLeads];
+    const existingUrls = allLeads.map(l => l.url);
+    const newLeads = leads.filter(l => !existingUrls.includes(l.url));
+    const updatedLeads = [...newLeads, ...allLeads];
     saveLeads(updatedLeads);
     
-    res.json({ success: true, leads: leads, count: leads.length });
+    res.json({ success: true, leads: newLeads, count: newLeads.length, total: updatedLeads.length });
     
   } catch (error) {
     console.error('搜尋失敗:', error.message);

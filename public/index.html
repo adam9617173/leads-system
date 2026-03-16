@@ -88,6 +88,7 @@
         <button class="quick-btn" onclick="quickSearch('創業 變現 課程')">創業</button>
         <button class="quick-btn" onclick="quickSearch('知識付費 講師')">知識付費</button>
         <button class="quick-btn" onclick="quickSearch('podcast 課程 講師')">Podcast</button>
+        <button class="quick-btn" onclick="quickSearch('健身教練 線上課程', true)" style="background:#ffa502;color:white;">🔄 強制重搜</button>
       </div>
     </div>
     
@@ -134,13 +135,13 @@
     };
     
     // 快速搜尋
-    function quickSearch(keyword) {
+    function quickSearch(keyword, force = false) {
       document.getElementById('searchInput').value = keyword;
-      doSearch();
+      doSearch(force);
     }
     
     // 搜尋
-    async function doSearch() {
+    async function doSearch(force = false) {
       const keyword = document.getElementById('searchInput').value.trim();
       if (!keyword) return;
       
@@ -152,7 +153,7 @@
         const res = await fetch('/api/leads/search', {
           method: 'POST',
           headers: {'Content-Type': 'application/json'},
-          body: JSON.stringify({ keyword })
+          body: JSON.stringify({ keyword, force })
         });
         const data = await res.json();
         
@@ -162,7 +163,7 @@
           showToast('📋 ' + data.message);
           loadLeads();
         } else {
-          showToast('✅ 找到 ' + data.count + ' 筆新資料！');
+          showToast('✅ 新增 ' + data.count + ' 筆（總共 ' + data.total + ' 筆）');
           loadLeads();
         }
       } catch(e) {
