@@ -39,6 +39,22 @@ app.post('/api/leads/search', async (req, res) => {
     return;
   }
   
+  // 先檢查是否已經搜尋過這個關鍵字
+  const existingLeads = getLeads();
+  const existingForKeyword = existingLeads.filter(l => l.keyword === keyword);
+  
+  if (existingForKeyword.length > 0) {
+    // 已有資料，回傳現有的
+    res.json({ 
+      success: true, 
+      leads: existingForKeyword, 
+      count: existingForKeyword.length,
+      message: '已找到 ' + existingForKeyword.length + ' 筆現有資料（關鍵字：' + keyword + '）'
+    });
+    return;
+  }
+  
+  // 沒有資料，進行搜尋
   try {
     const response = await axios.post('https://api.tavily.com/search', {
       query: keyword + ' 線上課程 講師 LINE',
@@ -60,8 +76,8 @@ app.post('/api/leads/search', async (req, res) => {
     }));
     
     // 儲存
-    const existingLeads = getLeads();
-    const updatedLeads = [...leads, ...existingLeads];
+    const allLeads = getLeads();
+    const updatedLeads = [...leads, ...allLeads];
     saveLeads(updatedLeads);
     
     res.json({ success: true, leads: leads, count: leads.length });

@@ -158,8 +158,11 @@
         
         if (data.error) {
           showToast('❌ ' + data.error);
+        } else if (data.message) {
+          showToast('📋 ' + data.message);
+          loadLeads();
         } else {
-          showToast('✅ 找到 ' + data.count + ' 筆資料！');
+          showToast('✅ 找到 ' + data.count + ' 筆新資料！');
           loadLeads();
         }
       } catch(e) {
